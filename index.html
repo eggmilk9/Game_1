@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="탐험대">
+<meta name="theme-color" content="#24405A">
+<link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="icon.png">
+<title>동글이 원석 탐험대</title>
+<link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+html,body{min-height:100%;background:linear-gradient(#24405A,#3A2F63) fixed;font-family:'Jua','Apple SD Gothic Neo',sans-serif;color:#3B3355}
+#app{max-width:560px;margin:0 auto;padding:calc(14px + env(safe-area-inset-top)) 14px calc(24px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:12px}
+h1{font-size:28px;font-weight:400;color:#FFE9A8;text-align:center}
+h2{font-size:24px;font-weight:400;margin-bottom:6px}
+.top{display:flex;justify-content:center;gap:10px;color:#fff;font-size:18px;flex-wrap:wrap}
+.top span{background:rgba(255,255,255,.14);border-radius:18px;padding:3px 12px}
+.card{background:#FFF4DC;border-radius:22px;padding:16px;text-align:center;box-shadow:0 5px 0 #CDB98A}
+p{font-size:17px;margin-bottom:8px}.hint{font-size:15px;color:#7A6E8F;margin:8px 0 4px}
+.row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.big{border:none;border-radius:18px;background:#FF8A5B;color:#fff;font:inherit;font-size:24px;padding:12px 26px;margin-top:8px;box-shadow:0 5px 0 #D2653A}
+.big:active{transform:translateY(3px);box-shadow:0 2px 0 #D2653A}
+.big:disabled{background:#BDB5A6;box-shadow:0 5px 0 #968F80}
+.big.ev{background:#7B61FF;box-shadow:0 5px 0 #5744C4;animation:pu 1.2s infinite}
+@keyframes pu{50%{transform:scale(1.06)}}
+.sm{border:none;background:none;font:inherit;font-size:17px;color:#7A6E8F;margin:8px 6px 0}
+.bar{height:16px;background:#E6D8B4;border-radius:10px;overflow:hidden;margin:8px 0}.bar i{display:block;height:100%;background:#7BC96F;border-radius:10px}
+.cr{width:23%;min-width:78px;background:#fff;border-radius:16px;padding:6px 2px;font-size:14px;border:none;font:inherit;color:inherit}
+.cr canvas{width:56px;height:56px}.cr.away{opacity:.4}
+.hb{height:8px;background:#E6D8B4;border-radius:6px;margin:3px 8px;overflow:hidden}.hb i{display:block;height:100%;background:#FF7A8A}
+.pill{background:#fff;border-radius:16px;padding:6px 12px;font-size:20px}
+.two{display:flex;gap:10px}.two button{flex:1;border:none;border-radius:18px;background:#fff;font:inherit;font-size:20px;padding:14px;color:#3B3355;box-shadow:0 5px 0 #CDB98A}
+.ch{border:3px solid transparent;background:#fff;border-radius:16px;font:inherit;font-size:16px;padding:6px 10px;color:#3B3355}
+.ch.on{border-color:#FF8A5B;background:#FFE9D6}.ch:disabled{opacity:.35}.ch canvas{width:48px;height:48px}
+.mt{background:#fff;border-radius:14px;padding:6px 10px;font-size:22px}.mt button{border:none;background:#FFE9A8;border-radius:50%;width:32px;height:32px;font:inherit;font-size:20px}.mt small{font-size:13px;color:#7A6E8F}
+.ov{position:fixed;inset:0;background:rgba(20,16,40,.6);display:flex;align-items:center;justify-content:center;z-index:9;padding:14px;overflow:auto}
+.ov[hidden]{display:none}
+.pn{background:#FFF4DC;border-radius:26px;padding:20px 16px;width:100%;max-width:480px;text-align:center;max-height:94dvh;overflow:auto}
+.gm{display:inline-block;width:30px;height:30px;clip-path:polygon(50% 0,100% 35%,50% 100%,0 35%);vertical-align:middle}
+.gd{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.gd div{background:#fff;border-radius:14px;padding:8px 2px;font-size:14px}
+.cb{width:70px;height:70px;border-radius:50%;border:none;transition:transform .15s}
+.rs{background:#fff;border-radius:12px;padding:6px 10px;margin:4px 0;font-size:16px;text-align:left}
+#toast{position:fixed;top:calc(12px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);background:#3B3355;color:#fff;border-radius:20px;padding:10px 18px;font-size:19px;z-index:30;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
+#toast.on{opacity:1}
+</style></head><body>
+<div id="app"></div><div class="ov" id="ov" hidden><div class="pn" id="pn"></div></div><div id="toast"></div>
+<script>
+if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+const $=s=>document.querySelector(s);
+const FAST=/fast/.test(location.search),HR=FAST?60000:3600000; /* 주소 뒤에 ?fast 를 붙이면 1시간이 1분으로 줄어 테스트할 수 있어요 */
+const EL={earth:['🪨','땅'],fire:['🔥','불'],wind:['🌪','바람'],water:['💧','물']};
+/* 캐릭터 이미지: 같은 폴더에 png를 넣으면 자동 적용, 없으면 기본 동글이 */
+const CREW=[{n:'치이카와',img:'chiikawa.png',c:'#fff',ear:'s'},{n:'하치와레',img:'hachiware.png',c:'#fff',cap:'#6FB5E8',ear:'s'},{n:'우사기',img:'usagi.png',c:'#FFE55C',ear:'l'},{n:'랏코',img:'rakko.png',c:'#E7B88F',ear:'s'}];
+const HELP=[{n:'나비',e:'🦋'},{n:'다람쥐',e:'🐿'},{n:'부엉이',e:'🦉'}];
+const GM=[['수정','#CFEFFF',1],['토파즈','#FFC94D',1],['에메랄드','#3FC380',2],['사파이어','#3A6FE0',2],['루비','#E8344E',3],['오팔','linear-gradient(135deg,#F9C6F0,#B8F0E8,#FFE9A8)',4],['다이아','#F4FBFF',5],['무지개 원석','linear-gradient(135deg,#FF6B6B,#FFD43B,#51CF66,#4DABF7,#B26BFF)',5]];
+const W={1:[35,35,18,10,2,0,0,0],3:[20,20,22,18,12,6,2,0],8:[8,8,15,18,22,15,9,5]},BASE={1:2,3:4,8:7};
+const Z=[{n:'불꽃 화산',e:'🌋',h:[['용암 강','water'],['뜨거운 바위길','wind'],['무너진 다리','earth']]},{n:'물방울 동굴',e:'🌊',h:[['얼어붙은 문','fire'],['깊은 물웅덩이','earth'],['짙은 안개','wind']]}];
+const gm=i=>`<i class="gm" style="background:${GM[i][1]}"></i>`,hn=h=>h==1?2:h==3?3:5;
+let D;try{D=JSON.parse(localStorage.ex1||'null')}catch(e){}
+D=D||{m:{earth:3,fire:3,wind:3,water:3},g:{},dr:1,h:[],hp:[100,100,100,100],hpT:Date.now(),x:null,day:'',mn:0};
+const sv=()=>{try{localStorage.ex1=JSON.stringify(D)}catch(e){}};
+const heal=()=>{const a=(Date.now()-D.hpT)/HR*20;if(a>=1){D.hp=D.hp.map(v=>Math.min(100,v+a));D.hpT=Date.now()}};
+const toast=t=>{const e=$('#toast');e.textContent=t;e.classList.add('on');setTimeout(()=>e.classList.remove('on'),2600)};
+const fmt=ms=>ms>=36e5?Math.floor(ms/36e5)+'시간 '+Math.ceil(ms%36e5/6e4)+'분':ms>=6e4?Math.ceil(ms/6e4)+'분':Math.ceil(ms/1e3)+'초';
+function blob(g,x,y,d,s){g.save();g.translate(x,y);const w=24*s,h=21*s;g.lineWidth=2.2;g.strokeStyle='#5a4a42';g.fillStyle=d.c;
+ [-1,1].forEach(k=>{const L=d.ear=='l';g.beginPath();g.ellipse(k*w*.55,-h*2-(L?10*s:0),L?5*s:6*s,L?17*s:8*s,k*.15,0,7);g.fill();g.stroke()});
+ g.beginPath();g.ellipse(0,-h,w,h,0,0,7);g.fill();g.stroke();
+ if(d.cap){g.fillStyle=d.cap;g.beginPath();g.ellipse(0,-h,w,h,0,Math.PI*1.08,Math.PI*1.92);g.fill()}
+ g.fillStyle='#3B3355';[-1,1].forEach(k=>{g.beginPath();g.arc(k*w*.38,-h-2*s,2.6*s,0,7);g.fill()});
+ g.fillStyle='rgba(255,140,160,.6)';[-1,1].forEach(k=>{g.beginPath();g.ellipse(k*w*.62,-h+5*s,4.5*s,3*s,0,0,7);g.fill()});
+ g.strokeStyle='#3B3355';g.lineWidth=1.8;g.beginPath();g.arc(0,-h+3*s,4*s,.2,Math.PI-.2);g.stroke();g.restore()}
+CREW.forEach(u=>{u.im=new Image();u.im.onload=()=>{u.ok=1;paint()};u.im.src=u.img});
+function paint(){document.querySelectorAll('canvas[data-u]').forEach(c=>{const u=CREW[c.dataset.u],g=c.getContext('2d');g.clearRect(0,0,80,80);u.ok?g.drawImage(u.im,0,0,80,80):blob(g,40,74,u,1.45)})}
+function modal(h){$('#pn').innerHTML=h;$('#ov').hidden=0;paint()}
+const closeM=()=>{$('#ov').hidden=1;home()};
+
+function home(){
+ if(!$('#ov').hidden)return;heal();const x=D.x,n=Date.now();let st;
+ if(!x)st=`<div class="card"><h2>탐험 준비!</h2><p>재료를 챙겨서 원석을 찾으러 가요</p><button class="big" onclick="prep()">탐험 떠나기</button></div>`;
+ else{const dur=x.hrs*HR,el=n-x.t0;
+  if(el>=dur)st=`<div class="card"><h2>탐험대가 돌아왔어요!</h2><button class="big" onclick="finish()">결과 보기 🎁</button></div>`;
+  else{const ei=x.ev.findIndex(e=>!e.d&&n>=e.at);
+   st=`<div class="card"><h2>${Z[x.z].e} ${Z[x.z].n} 탐험 중</h2><div class="bar"><i style="width:${el/dur*100}%"></i></div><p>남은 시간 ${fmt(dur-el)}</p>${ei>=0?`<button class="big ev" onclick="evGo(${ei})">✨ 뭔가 반짝여요!</button>`:'<p class="hint">중간에 반짝이는 일이 생길 수도 있어요</p>'}</div>`}}
+ const away=x?x.crew:[];
+ $('#app').innerHTML=`<h1>동글이 원석 탐험대</h1>
+ <div class="top"><span>💎 ${Object.values(D.g).reduce((a,b)=>a+b,0)}개</span><span>🥤 ${D.dr}</span><span>${D.h.map(i=>HELP[i].e).join('')||'조수 없음'}</span></div>${st}
+ <div class="card"><p>대원 (🥤 탭하면 힘이 나요)</p><div class="row">${CREW.map((c,i)=>`<button class="cr ${away.includes(i)?'away':''}" onclick="drink(${i})"><canvas data-u="${i}" width="80" height="80"></canvas><div>${c.n}</div><div class="hb"><i style="width:${D.hp[i]}%"></i></div></button>`).join('')}</div></div>
+ <div class="card"><p>재료 가방</p><div class="row">${Object.keys(EL).map(e=>`<span class="pill">${EL[e][0]} ${D.m[e]}</span>`).join('')}</div></div>
+ <div class="two"><button onclick="mine()">⛏ 재료 캐기</button><button onclick="dex()">📖 원석 도감</button></div>`;paint()}
+function drink(i){if(D.dr<1)return toast('에너지음료가 없어요');if(D.hp[i]>=100)return toast('벌써 쌩쌩해요!');D.dr--;D.hp[i]=Math.min(100,D.hp[i]+50);sv();home()}
+
+let P;
+function prep(){P={z:0,hrs:1,crew:[],pack:[]};pr()}
+function pr(){const p=P,z=Z[p.z],n=hn(p.hrs);
+ modal(`<h2>탐험 준비</h2><div class="row">${Z.map((q,i)=>`<button class="ch ${p.z==i?'on':''}" onclick="P.z=${i};pr()">${q.e}<br>${q.n}</button>`).join('')}</div>
+ <p class="hint">앞길의 역경: ${Array.from({length:n},(_,i)=>z.h[i%3][0]).join(' → ')}</p>
+ <div class="row">${[1,3,8].map(h=>`<button class="ch ${p.hrs==h?'on':''}" onclick="P.hrs=${h};pr()">${h}시간</button>`).join('')}</div>
+ <p class="hint">대원 고르기 (최대 3, 힘 30 이상)</p><div class="row">${CREW.map((c,i)=>`<button class="ch ${p.crew.includes(i)?'on':''}" ${D.hp[i]<30?'disabled':''} onclick="tg(${i})"><canvas data-u="${i}" width="80" height="80"></canvas><br>${Math.round(D.hp[i])}</button>`).join('')}</div>
+ <p class="hint">재료 가방 (${p.pack.length}/4) — 역경에 맞는 재료는?</p><div class="row">${Object.keys(EL).map(e=>{const c=p.pack.filter(x=>x==e).length;return `<div class="mt">${EL[e][0]}<br><button onclick="pk('${e}',-1)">−</button> ${c} <button onclick="pk('${e}',1)">+</button><br><small>보유 ${D.m[e]-c}</small></div>`}).join('')}</div>
+ <button class="big" ${p.crew.length?'':'disabled'} onclick="go()">출발!</button><button class="sm" onclick="closeM()">닫기</button>`)}
+function tg(i){const c=P.crew,k=c.indexOf(i);k>=0?c.splice(k,1):c.length<3&&c.push(i);pr()}
+function pk(e,d){const c=P.pack.filter(x=>x==e).length;if(d>0&&P.pack.length<4&&D.m[e]-c>0)P.pack.push(e);if(d<0&&c>0)P.pack.splice(P.pack.indexOf(e),1);pr()}
+function go(){const p=P,t0=Date.now(),dur=p.hrs*HR,pack={};p.pack.forEach(e=>{pack[e]=(pack[e]||0)+1;D.m[e]--});
+ D.x={z:p.z,hrs:p.hrs,t0,crew:p.crew,pack,ev:[1,2].map(j=>({at:t0+dur*j/3,type:Math.random()*4|0,d:0}))};sv();closeM();toast('출발! 잘 다녀와요 👋')}
+
+function evReward(){const un=HELP.map((_,i)=>i).filter(i=>!D.h.includes(i));
+ if(un.length&&Math.random()<.5){const i=un[Math.random()*un.length|0];D.h.push(i);return `${HELP[i].e} 조수 ${HELP[i].n} 합류!`}D.dr++;return '🥤 에너지음료 +1'}
+function evGo(i){const e=D.x.ev[i];mg(e.type,ok=>{e.d=ok?1:2;if(ok)e.msg=evReward();sv();toast(ok?e.msg:'다음엔 꼭 찾을 거예요!');home()})}
+function mine(){const t=new Date().toDateString();if(D.day!=t){D.day=t;D.mn=0}
+ if(D.mn>=5)return toast('오늘 캐기는 끝! 내일 또 와요');
+ modal(`<h2>어떤 재료를 캘까요?</h2><p class="hint">오늘 남은 횟수 ${5-D.mn}번</p><div class="row">${Object.keys(EL).map(e=>`<button class="ch" style="font-size:30px" onclick="dig('${e}')">${EL[e][0]}<br><small style="font-size:14px">${EL[e][1]}</small></button>`).join('')}</div><button class="sm" onclick="closeM()">닫기</button>`)}
+function dig(e){mg(0,ok=>{D.mn++;if(ok){D.m[e]+=2;toast(EL[e][0]+' 재료 +2')}else toast('조금 아쉬워요');sv();home()})}
+function dex(){modal(`<h2>원석 도감</h2><div class="gd">${GM.map((g,i)=>`<div>${D.g[i]?gm(i):'❓'}<br>${D.g[i]?g[0]:'???'}<br>${'★'.repeat(g[2])}${D.g[i]?'<br>x'+D.g[i]:''}</div>`).join('')}</div><p class="hint">조수</p><p>${HELP.map((h,i)=>D.h.includes(i)?h.e+h.n:'❓').join('  ')}</p><button class="sm" onclick="closeM()">닫기</button>`)}
+
+function finish(){heal();const x=D.x,z=Z[x.z],n=hn(x.hrs),pk={...x.pack},log=[];let ok=0;
+ for(let i=0;i<n;i++){const [nm,el]=z.h[i%3];if(pk[el]>0){pk[el]--;ok++;log.push(`✅ ${nm}: ${EL[el][0]} 재료로 척척 지나갔어요`)}else log.push(`😅 ${nm}: 재료가 없어서 힘들게 지나갔어요`)}
+ Object.keys(pk).forEach(e=>D.m[e]+=pk[e]);
+ x.crew.forEach(i=>D.hp[i]=Math.max(10,D.hp[i]-ok*4-(n-ok)*18));
+ const cnt=Math.max(1,Math.round(BASE[x.hrs]*(.4+.6*ok/n)))+D.h.length,w=W[x.hrs],got={};
+ for(let k=0;k<cnt;k++){let r=Math.random()*w.reduce((a,b)=>a+b),i=0;while(r>=w[i]){r-=w[i];i++}got[i]=(got[i]||0)+1;D.g[i]=(D.g[i]||0)+1}
+ const evs=x.ev.filter(e=>e.d==1).map(e=>`<div class="rs">✨ ${e.msg}</div>`).join('');
+ D.x=null;sv();
+ modal(`<h2>${z.e} 탐험 결과</h2>${log.map(l=>`<div class="rs">${l}</div>`).join('')}${evs}<p class="hint">찾은 원석</p><div>${Object.keys(got).sort((a,b)=>b-a).map(i=>`<div class="rs">${gm(i)} ${GM[i][0]} x${got[i]} ${GM[i][2]>=4?'🎉 대박!':''}</div>`).join('')}</div>${D.h.length?`<p class="hint">조수 덕분에 +${D.h.length}개!</p>`:''}<button class="big" onclick="closeM()">좋아요!</button>`)}
+
+/* 미니게임 0=톡톡 1=순서 2=곱셈 3=보물찾기 */
+function mg(t,cb){let done=0,iv;const end=ok=>{if(done)return;done=1;clearInterval(iv);setTimeout(()=>{$('#ov').hidden=1;cb(ok)},800)};
+ if(t==0){let n=0,tl=50;modal(`<h2>빨리 톡톡톡!</h2><p>5초 안에 10번 눌러요</p><button id="tb" class="big" style="font-size:56px">💎</button><div class="bar"><i id="tbar" style="width:100%"></i></div><p id="tc">0/10</p>`);
+  $('#tb').onclick=()=>{if(done)return;n++;$('#tc').textContent=n+'/10';if(n>=10){$('#tc').textContent='성공!';end(1)}};
+  iv=setInterval(()=>{tl--;$('#tbar').style.width=tl*2+'%';if(tl<=0){$('#tc').textContent='아쉬워!';end(0)}},100)}
+ else if(t==1){const C=['#FF6B6B','#4DABF7','#51CF66','#FFD43B'],q=[0,0,0].map(()=>Math.random()*4|0);let k=0,inp=0;
+  modal(`<h2>순서를 기억해요!</h2><p id="sp">잘 봐요 👀</p><div class="row">${C.map((c,i)=>`<button class="cb" id="c${i}" style="background:${c}"></button>`).join('')}</div>`);
+  const lit=(i,on)=>{const b=$('#c'+i);if(b)b.style.transform=on?'scale(1.3)':''};
+  q.forEach((v,j)=>{setTimeout(()=>lit(v,1),800+j*800);setTimeout(()=>lit(v,0),1300+j*800)});
+  setTimeout(()=>{inp=1;const s=$('#sp');if(s)s.textContent='이제 순서대로 눌러요!'},800+q.length*800);
+  C.forEach((_,i)=>$('#c'+i).onclick=()=>{if(!inp||done)return;if(i!=q[k]){$('#sp').textContent='아쉬워!';end(0)}else if(++k==3){$('#sp').textContent='성공!';end(1)}})}
+ else if(t==2){const a=2+Math.random()*8|0,b=2+Math.random()*8|0,r=a*b,o=[r,r+a,r-b].sort(()=>Math.random()-.5);
+  modal(`<h2>문제를 풀어요!</h2><p style="font-size:34px">${a} × ${b} = ?</p><div class="row">${o.map(v=>`<button class="ch" style="font-size:28px" data-v="${v}">${v}</button>`).join('')}</div><p id="sp"></p>`);
+  document.querySelectorAll('[data-v]').forEach(bt=>bt.onclick=()=>{if(done)return;const ok=+bt.dataset.v==r;$('#sp').textContent=ok?'정답!':'아쉬워!';end(ok)})}
+ else{const w=Math.random()*3|0;modal(`<h2>어디에 숨어있을까?</h2><p>반짝이는 곳을 한 번 골라요</p><div class="row">${[0,1,2].map(i=>`<button class="ch" style="font-size:50px" data-b="${i}">🌳</button>`).join('')}</div><p id="sp"></p>`);
+  document.querySelectorAll('[data-b]').forEach(bt=>bt.onclick=()=>{if(done)return;const i=+bt.dataset.b;bt.textContent=i==w?'💎':'🍃';$('#sp').textContent=i==w?'찾았다!':'아쉬워!';end(i==w)})}}
+home();setInterval(home,4000);
+</script></body></html>
